@@ -5,7 +5,8 @@ import networkx as nx
 from _timer import Timer
 from solution_hamiltonian import HamiltonianCycleModel
 
-
+import logging
+logging.basicConfig(level=logging.INFO)
 class SearchStrategy(Enum):
     """
     Different search strategies for the solver.
@@ -36,9 +37,26 @@ class BottleneckTSPSolver:
         """
         self.graph = graph
         # TODO: Implement me!
+        # exrcat all edges and sort them 
+        weights = [self.graph.edges[e]["weight"] for e in self.graph.edges]
+        self.edges_weights = sorted(set(weights))
+
+
 
     def lower_bound(self) -> float:
         # TODO: Implement me!
+        # easy lazy soltuion, the bottelneck is the minimum edge weight
+        return self.edges_weights[0] if self.edges_weights else 0.0
+
+
+    def create_subgraph(self, threshold: float) -> nx.Graph:
+        copy_graph = nx.Graph()
+        copy_graph.add_nodes_from(self.graph.nodes)
+        for u, v, weight in self.graph.edges(data="weight"):
+            if weight <= threshold:
+                copy_graph.add_edge(u, v)
+        return copy_graph
+
 
     def optimize_bottleneck(
         self,
@@ -51,3 +69,32 @@ class BottleneckTSPSolver:
 
         self.timer = Timer(time_limit)
         # TODO: Implement me!
+
+        
+        # binary for the win 
+        left, right = 0, len(self.edges_weights) - 1
+        best_tour = None
+        while left <= right:
+            mid = (left + right) // 2
+            threshold = self.edges_weights[mid] # edge weight to remove
+
+            # create subgraph with edges <= threshold
+            copy_graph = self.create_subgraph(threshold)
+            if not nx.is_connected(copy_graph):
+                left = mid + 1
+                continue
+
+            # solve it 
+            hc_solver = HamiltonianCycleModel(copy_graph)
+            hc_edges = hc_solver.solve()
+
+            if hc_edges is not None:
+                # we found a tour but can we go lower 
+                best_tour = hc_edges
+                right = mid - 1
+            else:
+                left = mid + 1
+        return best_tour
+
+
+

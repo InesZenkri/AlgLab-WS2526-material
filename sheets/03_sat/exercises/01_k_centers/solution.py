@@ -50,7 +50,20 @@ class Distances:
 class KCenterDecisionVariant:
     def __init__(self, distances: Distances, k: int) -> None:
         self.distances = distances
-        # TODO: Implement me!
+        # TODO: Implement me! 
+        self.k = k
+        self.solver = SATSolver("Gluecard4")
+        self.all_vertices = list(self.distances.all_vertices())
+        self.vars = {}    # node to sat variable
+        self.nodes = {}  # sat var to node
+        
+        for i, node in enumerate(self.all_vertices, start=1):
+            self.vars[node] = i
+            self.nodes[i] = node
+        
+        #  at most k centers
+        self.solver.add_atmost(lits=list(self.vars.values()), k=k)
+        
         # Solution model
         self._solution: list[NodeId] | None = None
 
@@ -58,10 +71,23 @@ class KCenterDecisionVariant:
         """Adds constraints to the SAT solver to ensure coverage within the given distance."""
         logging.info("Limiting to distance: %f", limit)
         # TODO: Implement me!
+        # each node must have one center in its range
+        for node in self.distances.all_vertices():
+            nearby_nodes = list(self.distances.vertices_in_range(node, limit))
+            if len(nearby_nodes) == 0:
+                self.solver.add_clause([])
+                continue
+            nearby_vars = [self.vars[n] for n in nearby_nodes]
+            self.solver.add_clause(nearby_vars)
 
     def solve(self) -> list[NodeId] | None:
         """Solves the SAT problem and returns the list of selected nodes, if feasible."""
         # TODO: Implement me!
+        if self.solver.solve():
+            model = self.solver.get_model()
+            self._solution = [node for node, var in self.vars.items() if model[var-1] > 0]
+        else:
+            self._solution = None
         return self._solution
 
     def get_solution(self) -> list[NodeId]:
@@ -83,13 +109,34 @@ class KCentersSolver:
         self.graph = graph
         # TODO: Implement me!
 
+        self.distances = Distances(graph)
+
+
     def solve_heur(self, k: int) -> list[NodeId]:
         """
         Calculate a heuristic solution to the k-centers problem.
         Returns the k selected centers as a list of node IDs.
         """
         # TODO: Implement me!
-        centers = None
+        centers = []
+        nodes_list = list(self.distances.all_vertices())
+        
+        for i in range(k):
+            if i == 0:
+                centers.append(nodes_list[0])  #just choose the first node, could be using random also 
+            else:
+                best_node = None #farthest node from the centers
+                best_dist = -1 #distance to the farthest node from the centers(aka max distance)
+                
+                for node in nodes_list:
+                    if node not in centers:
+                        # distance to nearest existing center
+                        dist_to_nearest = min(self.distances.dist(node, c) for c in centers)
+                        if dist_to_nearest > best_dist:
+                            best_dist = dist_to_nearest
+                            best_node = node
+                
+                centers.append(best_node)
         return centers
 
 
@@ -103,4 +150,29 @@ class KCentersSolver:
         obj = self.distances.max_dist(centers)
 
         # TODO: Implement me!
-        return centers
+
+        sorted_dists = self.distances.sorted_distances()
+        possible_distances = [d for d in sorted_dists if d < obj]
+        if not possible_distances:
+            logging.info("welll Heuristic solution is optimal")
+            return centers
+        low = 0
+        high = len(possible_distances) - 1
+        best_centers = centers
+        best_obj = obj
+        while low <= high:
+            mid = (low + high) // 2
+            distance = possible_distances[mid]
+            decision_solver = KCenterDecisionVariant(self.distances, k)
+            decision_solver.limit_distance(distance)
+            res = decision_solver.solve()
+            if res is not None:
+                logging.info("welllll new solution found, we can go lower")
+                best_centers = res
+                high = mid - 1
+            else:
+                logging.info("oppps too tight, we should go higher")
+                low = mid + 1
+        return best_centers
+        
+

@@ -150,7 +150,7 @@ class KCentersSolver:
         obj = self.distances.max_dist(centers)
 
         # TODO: Implement me!
-
+        decision_solver = KCenterDecisionVariant(self.distances, k)
         sorted_dists = self.distances.sorted_distances()
         possible_distances = [d for d in sorted_dists if d < obj]
         if not possible_distances:
@@ -163,7 +163,6 @@ class KCentersSolver:
         while low <= high:
             mid = (low + high) // 2
             distance = possible_distances[mid]
-            decision_solver = KCenterDecisionVariant(self.distances, k)
             decision_solver.limit_distance(distance)
             res = decision_solver.solve()
             if res is not None:

@@ -33,21 +33,22 @@ class HamiltonianCycleModel:
 
 
     def no_subtours_constraint(self, sets) -> None:
-        """
-        S = set(sets)
-        existing_edges = []
-        for u in S:
-            for v in self.graph.neighbors(u):
-                if v not in S:
-                    key = tuple(sorted((u, v)))
-                    edge_var = self.vars[key]
-                    if edge_var not in existing_edges:
-                        existing_edges.append(edge_var)
+        
+        
+        for S in sets:
+            existing_edges = []
+            for u in S:
+                for v in self.graph.neighbors(u):
+                    if v not in S:
+                        key = tuple(sorted((u, v)))
+                        edge_var = self.vars[key]
+                        if edge_var not in existing_edges:
+                            existing_edges.append(edge_var)
 
-        # at least one edge must exist exiting the subset
-        # equivalent to a clause x1 + x2 + ... + xn >= 1
-        if existing_edges:
-            self.solver.add_clause(existing_edges)
+            # at least one edge must exist exiting the subset
+            # equivalent to a clause x1 + x2 + ... + xn >= 1
+            if existing_edges:
+                self.solver.add_clause(existing_edges)
         """
         for S in sets:
             if len(S) == len(self.graph):
@@ -57,7 +58,7 @@ class HamiltonianCycleModel:
             for v in S:
                 for u in self.graph.nodes:
                     if u not in S:
-                        key = tuple(sorted((v, u)))
+                        key = tuple(sorted((v, u))) 
                         if key in self.vars:
                             edges.append(self.vars[key])
             
@@ -65,6 +66,7 @@ class HamiltonianCycleModel:
             # at least one edge must exist exiting the subset
             # equivalnet to at most len(edges) - 1 edges exiting the subset
             self.solver.add_atmost(neg_edges, len(edges) - 1)
+        """
 
     
     def solve(self) -> list[tuple[int, int]] | None:

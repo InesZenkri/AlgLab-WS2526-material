@@ -2,7 +2,7 @@
 Search Strategy Module
 
 The search strategy determines which node you explore next in the BnB tree to
-improve your lower or upper bound as quickly as possible. Provide a `priority`
+improve your lower or upper bound as quickly as possible. Provide a priority
 function that ranks open nodes; this class manages a priority queue accordingly.
 
 You can implement breadth-first, depth-first, best-first, or any custom order
@@ -34,7 +34,7 @@ class SearchStrategy:
 
     def enqueue(self, node: BnBNode) -> None:
         """
-        Add `node` to the open-set with its priority key.
+        Add node to the open-set with its priority key.
         Ties are broken by the order nodes were added.
         """
         self._queue.put((self._priority(node), self._counter, node))
@@ -84,7 +84,7 @@ class SearchStrategy:
         ).relaxed_solution.upper_bound
 
 
-# Default search order: you must supply your own `priority`.
+# Default search order: you must supply your own priority.
 # This stub returns a constant key.
 
 
@@ -92,6 +92,4 @@ def my_search_order(node: BnBNode) -> Any:
     """
     Example default: constant priority.
     """
-    return 0
-
-
+    return -node.relaxed_solution.upper_bound

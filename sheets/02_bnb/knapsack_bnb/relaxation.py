@@ -16,7 +16,7 @@ This file provides three example strategies:
   3. MyRelaxationSolver:
      - Stub for your own algorithm (e.g., fractional knapsack, propagation).
 
-You should subclass `RelaxationSolver` and implement `solve(instance, decisions)`
+You should subclass RelaxationSolver and implement solve(instance, decisions)
 so that:
   a) fixed decisions remain unchanged;
   b) objective >= best 0/1 solution consistent with those decisions.
@@ -33,7 +33,7 @@ class RelaxationSolver(abc.ABC):
     """
     Abstract base for relaxation strategies.
 
-    Implement `solve` to compute an upper bound on the best 0/1 solution
+    Implement solve to compute an upper bound on the best 0/1 solution
     consistent with given decisions.
     """
 
@@ -42,8 +42,8 @@ class RelaxationSolver(abc.ABC):
         self, instance: Instance, decisions: BranchingDecisions
     ) -> RelaxedSolution:
         """
-        Return a `RelaxedSolution` satisfying:
-          - fixed items in `decisions` remain at 0 or 1;
+        Return a RelaxedSolution satisfying:
+          - fixed items in decisions remain at 0 or 1;
           - upper_bound >= best feasible 0/1 solution under those decisions.
         """
         ...
@@ -108,6 +108,35 @@ class MyRelaxationSolver(RelaxationSolver):
             return RelaxedSolution.create_infeasible(instance)
         selection = [0.0 if x == 0 else 1.0 for x in decisions]
         upper = sum(item.value * sel for item, sel in zip(instance.items, selection))
+        if used > instance.capacity:
+            return RelaxedSolution.create_infeasible(instance)
+        
+        remaining_capacity = instance.capacity - used
+        not_fixed = []
+        selection = [1.0 if x == 1.0 else 0.0 for x in decisions]
+        for i in range(len(decisions)):
+            if decisions[i] is None:
+                not_fixed.append(i)
+        not_fixed_can_fit = [] # items that can fit in the remaining capacity
+        for i in not_fixed:
+            if instance.items[i].weight <= remaining_capacity:
+                not_fixed_can_fit.append(i)
+        can_fit = [(instance.items[i], i) for i in not_fixed_can_fit]  # items that can fit in the remaining capacity
+        can_fit.sort(key=lambda item: item[0].weight/item[0].value) # sort it
+        upper = sum(item.value * sel for item, sel in zip(instance.items, selection))
+        while True:
+            if len(can_fit) == 0:
+                break
+            remaining_capacity = instance.capacity - used
+            current = can_fit.pop(0)
+            if current[0].weight > remaining_capacity:
+                upper += remaining_capacity/current[0].weight * current[0].value
+                selection[current[1]] = remaining_capacity/current[0].weight
+                break
+            upper += current[0].value
+            used += current[0].weight
+            selection[current[1]] = 1.0
+
+
+
         return RelaxedSolution(instance, selection, upper)
-
-

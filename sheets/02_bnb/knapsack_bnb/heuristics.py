@@ -6,8 +6,8 @@ To tighten pruning, you need feasible (integral) solutions to serve as lower bou
 Instead of waiting for an integral node, you can derive feasible solutions from the relaxation
 (e.g., rounding, greedy inclusion) to improve search efficiency.
 
-You can implement heuristics by subclassing `Heuristics` and overriding `search(instance, node)`.
-`search` should yield zero or more feasible `RelaxedSolution` objects.
+You can implement heuristics by subclassing Heuristics and overriding search(instance, node).
+search should yield zero or more feasible RelaxedSolution objects.
 """
 
 import math
@@ -21,7 +21,7 @@ from .relaxed_solution import RelaxedSolution
 class HeuristicSolution(RelaxedSolution):
     """
     A feasible heuristic solution.
-    Inherits from `RelaxedSolution` for compatibility with the rest of the codebase.
+    Inherits from RelaxedSolution for compatibility with the rest of the codebase.
     """
 
     def copy(self) -> "HeuristicSolution":
@@ -39,7 +39,7 @@ class Heuristics(ABC):
     """
     Abstract base for heuristic generators.
 
-    Implement `search` to produce feasible solutions from a node's relaxed solution.
+    Implement search to produce feasible solutions from a node's relaxed solution.
     """
 
     @abstractmethod
@@ -47,7 +47,7 @@ class Heuristics(ABC):
         self, instance: Instance, relaxed: RelaxedSolution
     ) -> Tuple[HeuristicSolution, ...]:
         """
-        Return a tuple of feasible `HeuristicSolution` objects for pruning.
+        Return a tuple of feasible HeuristicSolution objects for pruning.
         """
         ...
 
@@ -63,11 +63,15 @@ class MyHeuristic(Heuristics):
     def search(
         self, instance: Instance, relaxed: RelaxedSolution
     ) -> Tuple[HeuristicSolution, ...]:
-        if relaxed.does_obey_capacity_constraint() and relaxed.is_integral():
-            heuristic_sol = HeuristicSolution(
-                instance, relaxed.selection, relaxed.upper_bound
-            )
-            return (heuristic_sol,)
-        return ()
-
-
+        #if relaxed.does_obey_capacity_constraint() and relaxed.is_integral():
+        #   heuristic_sol = HeuristicSolution(
+        #       instance, relaxed.selection, relaxed.upper_bound
+        #   )
+        #   return (heuristic_sol,)
+        selection = relaxed.selection
+        for i, selected in enumerate(relaxed.selection):
+            if 0 < selected < 1: # partially packed
+                selection[i] = 0
+                break
+        lb = sum(item.value * sel for item, sel in zip(relaxed.instance.items, selection))            
+        return (HeuristicSolution(instance, selection, lb),)

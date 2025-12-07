@@ -7,7 +7,7 @@ is not yet a feasible integer solution. At each branching step:
  2. Create two children by fixing that variable to 0 (exclude) and 1 (include).
  3. If all variables are fixed, no branches are returned (leaf node).
 
-You should implement your own strategies by subclassing `BranchingStrategy`.
+You should implement your own strategies by subclassing BranchingStrategy.
 """
 
 from abc import ABC, abstractmethod
@@ -20,14 +20,14 @@ class BranchingStrategy(ABC):
     """
     Abstract base for branching policies based on a node's relaxed solution.
 
-    Subclasses must implement `make_branching_decisions` to return zero,
-    two, or more `BranchingDecisions` objects describing child nodes.
+    Subclasses must implement make_branching_decisions to return zero,
+    two, or more BranchingDecisions objects describing child nodes.
     """
 
     @abstractmethod
     def make_branching_decisions(self, node: BnBNode) -> Iterable[BranchingDecisions]:
         """
-        Return an iterable of `BranchingDecisions` to create child nodes.
+        Return an iterable of BranchingDecisions to create child nodes.
         If no decisions can be made (all variables fixed), return an empty iterable.
         """
         ...
@@ -60,12 +60,21 @@ class MyBranchingStrategy(BranchingStrategy):
 
     def make_branching_decisions(self, node: BnBNode) -> Tuple[BranchingDecisions, ...]:
         # placeholder: branch on the first unfixed variable
-        first_unfixed = min(
-            (i for i, val in enumerate(node.branching_decisions) if val is None),
-            default=-1,
-        )
-        if first_unfixed < 0:
+        #first_unfixed = min(
+        #   (i for i, val in enumerate(node.branching_decisions) if val is None),
+        #   default=-1,
+        #)
+        #if first_unfixed < 0:
+        #    return ()
+        if node.branching_decisions.is_fixed():
             return ()
+        unfixed = [i for i, val in enumerate(node.branching_decisions) if val is None]
+        relaxed_solution = node.relaxed_solution.copy()
+        selection = relaxed_solution.selection
+        # first unfixed variable
+        first_unfixed = unfixed[0]
+        for i in unfixed:
+            if 0.0 < selection[i] < 1.0:
+                first_unfixed = i
+                break
         return node.branching_decisions.split_on(first_unfixed)
-
-
